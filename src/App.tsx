@@ -85,7 +85,7 @@ export default function App() {
     try {
       // 1. Get Gemini's response/acknowledgement
       const geminiResponse = await ai.models.generateContent({
-        model: "gemini-3.1-flash-latest",
+        model: "gemini-flash-latest",
         contents: [...messages.map(m => ({ role: m.role, parts: [{ text: m.content }] })), { role: 'user', parts: [{ text: userTask }] }],
         config: { systemInstruction: SYSTEM_PROMPT }
       });

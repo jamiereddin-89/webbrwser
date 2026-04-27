@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import dotenv from "dotenv";
+import { LocalBrowserAgent } from './server/agent';
 
 dotenv.config();
 
@@ -10,52 +11,39 @@ async function startServer() {
 
   app.use(express.json());
 
+  const defaultKey = process.env.GEMINI_API_KEY;
+  if (!defaultKey) {
+    console.warn("WARNING: No GEMINI_API_KEY found in environment. Local browser agent may require manual key entry in Settings.");
+  }
+  const agent = new LocalBrowserAgent(defaultKey || '');
+
   // API Routes
   app.post("/api/browser/run", async (req, res) => {
     const { task } = req.body;
-    const apiKey = process.env.BROWSER_USE_API_KEY;
-
-    if (!apiKey) {
-      return res.status(500).json({ error: "BROWSER_USE_API_KEY is not set" });
-    }
-
+    const geminiKey = req.headers["x-gemini-api-key"] as string;
+    
     try {
-      const response = await fetch("https://api.browser-use.com/api/v3/sessions", {
-        method: "POST",
-        headers: {
-          "X-Browser-Use-API-Key": apiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ task }),
-      });
-
-      const data = await response.json();
-      res.json(data);
+      const sessionId = await agent.createSession(task, geminiKey);
+      const session = agent.getSession(sessionId);
+      res.json(session);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ 
+        error: "Execution Error", 
+        message: "Failed to start local browser agent.",
+        details: error.message 
+      });
     }
   });
 
   app.get("/api/browser/session/:id", async (req, res) => {
     const { id } = req.params;
-    const apiKey = process.env.BROWSER_USE_API_KEY;
-
-    if (!apiKey) {
-      return res.status(500).json({ error: "BROWSER_USE_API_KEY is not set" });
+    const session = agent.getSession(id);
+    
+    if (!session) {
+      return res.status(404).json({ error: "Session not found" });
     }
 
-    try {
-      const response = await fetch(`https://api.browser-use.com/api/v3/sessions/${id}`, {
-        headers: {
-          "X-Browser-Use-API-Key": apiKey,
-        },
-      });
-
-      const data = await response.json();
-      res.json(data);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
+    res.json(session);
   });
 
   // Vite middleware for development

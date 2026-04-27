@@ -1,0 +1,6 @@
+{
+  "name": "WebOrbit AI",
+  "description": "A natural language web agent powered by Browser-Use Cloud and Gemini. Browse the web in a live split-view interface.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
